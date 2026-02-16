@@ -1,4 +1,4 @@
-package com.innowise.orderservice.model.dto;
+package com.innowise.orderservice.model.dto.order;
 
 import java.time.Instant;
 import java.util.List;

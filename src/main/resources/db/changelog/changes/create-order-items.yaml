@@ -27,6 +27,12 @@ databaseChangeLog:
                   type: INTEGER
                   constraints:
                     nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
         - addForeignKeyConstraint:
             baseTableName: order_items
             baseColumnNames: order_id

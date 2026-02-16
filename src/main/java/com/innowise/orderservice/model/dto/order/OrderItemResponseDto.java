@@ -1,4 +1,4 @@
-package com.innowise.orderservice.model.dto;
+package com.innowise.orderservice.model.dto.order;
 
 public record OrderItemResponseDto(
         Long id,

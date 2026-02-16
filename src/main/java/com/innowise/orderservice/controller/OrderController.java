@@ -1,8 +1,8 @@
 package com.innowise.orderservice.controller;
 
-import com.innowise.orderservice.model.dto.CreateOrderRequestDto;
-import com.innowise.orderservice.model.dto.OrderResponseDto;
-import com.innowise.orderservice.model.dto.UpdateOrderRequestDto;
+import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
+import com.innowise.orderservice.model.dto.order.OrderResponseDto;
+import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
 import com.innowise.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,12 +38,12 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public OrderResponseDto getOrderById(@PathVariable Long id) {
-        return orderService.getOrderById(id);
+    public ResponseEntity<OrderResponseDto> getOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
     @GetMapping
-    public Page<OrderResponseDto> getOrders(
+    public ResponseEntity<Page<OrderResponseDto>> getOrders(
             @RequestParam(required = false) List<String> statuses,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdTo,
@@ -51,17 +51,17 @@ public class OrderController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return orderService.getOrders(statuses, createdFrom, createdTo, pageable);
+        return ResponseEntity.ok(orderService.getOrders(statuses, createdFrom, createdTo, pageable));
     }
 
     @GetMapping("/user/{userId}")
-    public List<OrderResponseDto> getOrdersByUserId(@PathVariable Long userId) {
-        return orderService.getOrdersByUserId(userId);
+    public ResponseEntity<List<OrderResponseDto>> getOrdersByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(orderService.getOrdersByUserId(userId));
     }
 
     @PutMapping("/{id}")
-    public OrderResponseDto updateOrderById(@PathVariable Long id, @Valid @RequestBody UpdateOrderRequestDto request) {
-        return orderService.updateOrderById(id, request);
+    public ResponseEntity<OrderResponseDto> updateOrderById(@PathVariable Long id, @Valid @RequestBody UpdateOrderRequestDto request) {
+        return ResponseEntity.ok(orderService.updateOrderById(id, request));
     }
 
     @DeleteMapping("/{id}")
