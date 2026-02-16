@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/create-orders.yaml
   - include:
       file: db/changelog/changes/create-order-items.yaml
+  - include:
+      file: db/changelog/changes/add-indexes.yaml
