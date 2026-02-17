@@ -1,5 +1,6 @@
 package com.innowise.orderservice.service;
 
+import com.innowise.orderservice.model.dto.OrderWithUserResponseDto;
 import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
 import com.innowise.orderservice.model.dto.order.OrderResponseDto;
 import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
@@ -10,20 +11,19 @@ import java.time.Instant;
 import java.util.List;
 
 public interface OrderService {
-    OrderResponseDto createOrder(CreateOrderRequestDto request);
+    OrderWithUserResponseDto createOrder(CreateOrderRequestDto request);
 
-    OrderResponseDto getOrderById(Long id);
+    OrderWithUserResponseDto getOrderById(Long id);
 
-    Page<OrderResponseDto> getOrders(
+    Page<OrderWithUserResponseDto> getOrders(
             List<String> statuses,
+            String userEmail,
             Instant createdFrom,
             Instant createdTo,
             Pageable pageable
     );
 
-    List<OrderResponseDto> getOrdersByUserId(Long userId);
-
-    OrderResponseDto updateOrderById(Long id, UpdateOrderRequestDto request);
+    OrderWithUserResponseDto updateOrderById(Long id, UpdateOrderRequestDto request);
 
     void deleteOrderById(Long id);
 }

@@ -1,7 +1,7 @@
 package com.innowise.orderservice.service;
 
-import com.innowise.orderservice.model.dto.ItemRequestDto;
-import com.innowise.orderservice.model.dto.ItemResponseDto;
+import com.innowise.orderservice.model.dto.item.ItemRequestDto;
+import com.innowise.orderservice.model.dto.item.ItemResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

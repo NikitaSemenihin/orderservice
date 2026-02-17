@@ -13,8 +13,8 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: user_id
-                  type: BIGINT
+                  name: user_email
+                  type: VARCHAR(255)
                   constraints:
                     nullable: false
               - column:

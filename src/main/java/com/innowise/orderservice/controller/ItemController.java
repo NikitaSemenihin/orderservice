@@ -1,7 +1,7 @@
 package com.innowise.orderservice.controller;
 
-import com.innowise.orderservice.model.dto.ItemRequestDto;
-import com.innowise.orderservice.model.dto.ItemResponseDto;
+import com.innowise.orderservice.model.dto.item.ItemRequestDto;
+import com.innowise.orderservice.model.dto.item.ItemResponseDto;
 import com.innowise.orderservice.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

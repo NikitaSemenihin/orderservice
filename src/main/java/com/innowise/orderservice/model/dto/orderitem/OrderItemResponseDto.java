@@ -1,10 +1,12 @@
-package com.innowise.orderservice.model.dto.order;
+package com.innowise.orderservice.model.dto.orderitem;
+
+import java.math.BigDecimal;
 
 public record OrderItemResponseDto(
         Long id,
         Long itemId,
         String itemName,
-        double itemPrice,
+        BigDecimal itemPrice,
         Integer quantity
 ) {
 }

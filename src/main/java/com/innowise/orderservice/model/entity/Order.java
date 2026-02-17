@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,14 +25,14 @@ public class Order extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "user_email", nullable = false)
+    private String userEmail;
 
     @Column(nullable = false)
     private String status;
 
     @Column(name = "total_price", nullable = false)
-    private double totalPrice;
+    private BigDecimal totalPrice;
 
     @Column(nullable = false)
     private boolean deleted;

@@ -1,8 +1,11 @@
 package com.innowise.orderservice.service.impl;
 
+import com.innowise.orderservice.client.UserServiceClient;
 import com.innowise.orderservice.exception.ItemNotFoundException;
 import com.innowise.orderservice.exception.OrderNotFoundException;
 import com.innowise.orderservice.mapper.OrderMapper;
+import com.innowise.orderservice.model.dto.OrderWithUserResponseDto;
+import com.innowise.orderservice.model.dto.UserClientDto;
 import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
 import com.innowise.orderservice.model.dto.order.OrderResponseDto;
 import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
@@ -20,6 +23,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -29,28 +33,32 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ItemRepository itemRepository;
     private final OrderMapper orderMapper;
+    private final UserServiceClient userServiceClient;
 
     @Override
     @Transactional
-    public OrderResponseDto createOrder(CreateOrderRequestDto request) {
+    public OrderWithUserResponseDto createOrder(CreateOrderRequestDto request) {
         Order order = orderMapper.toEntity(request);
         order.setDeleted(false);
         attachResolvedItemsAndCalculateTotal(order);
         Order savedOrder = orderRepository.save(order);
-        return orderMapper.toResponse(savedOrder);
+        UserClientDto user = userServiceClient.getUserByEmail(order.getUserEmail());
+        return buildResponse(user, orderMapper.toResponse(savedOrder));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public OrderResponseDto getOrderById(Long id) {
+    public OrderWithUserResponseDto getOrderById(Long id) {
         Order order = getExistingOrder(id);
-        return orderMapper.toResponse(order);
+        UserClientDto user = userServiceClient.getUserByEmail(order.getUserEmail());
+        return buildResponse(user, orderMapper.toResponse(order));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderResponseDto> getOrders(
+    public Page<OrderWithUserResponseDto> getOrders(
             List<String> statuses,
+            String userEmail,
             Instant createdFrom,
             Instant createdTo,
             Pageable pageable
@@ -61,29 +69,28 @@ public class OrderServiceImpl implements OrderService {
 
         Specification<Order> specification = Specification
                 .where(OrderSpecification.hasStatuses(statuses))
+                .and(OrderSpecification.hasUserEmail(userEmail))
                 .and(OrderSpecification.createdAtBetween(createdFrom, createdTo));
 
-        return orderRepository.findAll(specification, pageable)
-                .map(orderMapper::toResponse);
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<OrderResponseDto> getOrdersByUserId(Long userId) {
-        return orderRepository.findAllByUserId(userId).stream()
+        return orderRepository.findAll(specification, pageable)
                 .map(orderMapper::toResponse)
-                .toList();
+                .map(orderDto -> {
+                    UserClientDto user = userServiceClient.getUserByEmail(orderDto.userEmail());
+                    return buildResponse(user, orderDto);
+                });
     }
 
     @Override
     @Transactional
-    public OrderResponseDto updateOrderById(Long id, UpdateOrderRequestDto request) {
+    public OrderWithUserResponseDto updateOrderById(Long id, UpdateOrderRequestDto request) {
         Order order = getExistingOrder(id);
         orderMapper.updateEntity(request, order);
         attachResolvedItemsAndCalculateTotal(order);
 
         Order savedOrder = orderRepository.save(order);
-        return orderMapper.toResponse(savedOrder);
+        UserClientDto user = userServiceClient.getUserByEmail(order.getUserEmail());
+        return buildResponse(user, orderMapper.toResponse(savedOrder));
     }
 
     @Override
@@ -100,10 +107,10 @@ public class OrderServiceImpl implements OrderService {
 
     private void attachResolvedItemsAndCalculateTotal(Order order) {
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
-            order.setTotalPrice(0.0);
+            order.setTotalPrice(BigDecimal.ZERO);
             return;
         }
-        double totalPrice = 0.0;
+        BigDecimal totalPrice = BigDecimal.ZERO;
         for (OrderItem orderItem : order.getOrderItems()) {
             Long itemId = orderItem.getItem() != null ? orderItem.getItem().getId() : null;
             Item item = itemRepository.findById(itemId)
@@ -113,9 +120,14 @@ public class OrderServiceImpl implements OrderService {
 
             orderItem.setOrder(order);
             orderItem.setItem(item);
-            totalPrice += item.getPrice() * orderItem.getQuantity();
+            BigDecimal itemTotal = item.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
+            totalPrice = totalPrice.add(itemTotal);
         }
 
         order.setTotalPrice(totalPrice);
+    }
+
+    private OrderWithUserResponseDto buildResponse(UserClientDto userDto, OrderResponseDto orderDto) {
+        return new OrderWithUserResponseDto(orderDto, userDto);
     }
 }

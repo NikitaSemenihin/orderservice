@@ -1,13 +1,16 @@
 package com.innowise.orderservice.model.dto.order;
 
+import com.innowise.orderservice.model.dto.orderitem.OrderItemResponseDto;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
 public record OrderResponseDto(
         Long id,
-        Long userId,
+        String userEmail,
         String status,
-        double totalPrice,
+        BigDecimal totalPrice,
         boolean deleted,
         Instant createdAt,
         Instant updatedAt,

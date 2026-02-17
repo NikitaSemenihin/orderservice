@@ -2,8 +2,8 @@ package com.innowise.orderservice.service.impl;
 
 import com.innowise.orderservice.exception.ItemNotFoundException;
 import com.innowise.orderservice.mapper.ItemMapper;
-import com.innowise.orderservice.model.dto.ItemRequestDto;
-import com.innowise.orderservice.model.dto.ItemResponseDto;
+import com.innowise.orderservice.model.dto.item.ItemRequestDto;
+import com.innowise.orderservice.model.dto.item.ItemResponseDto;
 import com.innowise.orderservice.model.entity.Item;
 import com.innowise.orderservice.repository.ItemRepository;
 import com.innowise.orderservice.service.ItemService;

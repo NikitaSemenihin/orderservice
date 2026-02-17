@@ -5,10 +5,10 @@ databaseChangeLog:
       changes:
         - createIndex:
             tableName: orders
-            indexName: idx_orders_user_id
+            indexName: idx_orders_user_email
             columns:
               - column:
-                  name: user_id
+                  name: user_email
         - createIndex:
             tableName: orders
             indexName: idx_orders_status

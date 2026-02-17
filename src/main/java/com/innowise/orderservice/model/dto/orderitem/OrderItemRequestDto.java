@@ -1,4 +1,4 @@
-package com.innowise.orderservice.model.dto.order;
+package com.innowise.orderservice.model.dto.orderitem;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;

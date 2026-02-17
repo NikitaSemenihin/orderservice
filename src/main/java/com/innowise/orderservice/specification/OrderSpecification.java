@@ -19,6 +19,15 @@ public final class OrderSpecification {
         };
     }
 
+    public static Specification<Order> hasUserEmail(String userEmail) {
+        return (root, query, cb) -> {
+            if (userEmail == null || userEmail.isBlank()) {
+                return cb.conjunction();
+            }
+            return cb.equal(root.get("userEmail"), userEmail);
+        };
+    }
+
     public static Specification<Order> createdAtBetween(Instant from, Instant to) {
         return (root, query, cb) -> {
             if (from != null && to != null) {

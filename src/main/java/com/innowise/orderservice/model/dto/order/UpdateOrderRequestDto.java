@@ -1,5 +1,6 @@
 package com.innowise.orderservice.model.dto.order;
 
+import com.innowise.orderservice.model.dto.orderitem.OrderItemRequestDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

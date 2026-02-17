@@ -1,11 +1,15 @@
 package com.innowise.orderservice.model.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
-public record ItemResponseDto(
+public record UserClientDto(
         Long id,
         String name,
-        double price,
+        String surname,
+        String email,
+        boolean active,
+        LocalDate birthDate,
         Instant createdAt,
         Instant updatedAt
 ) {

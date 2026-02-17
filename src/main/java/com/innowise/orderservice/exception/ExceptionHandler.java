@@ -23,6 +23,18 @@ public class ExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
     }
 
+    @org.springframework.web.bind.annotation.ExceptionHandler(RemoteUserNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleRemoteUserNotFound(RemoteUserNotFoundException ex,
+                                                                     HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(UserServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponseDto> handleUserServiceUnavailable(UserServiceUnavailableException ex,
+                                                                     HttpServletRequest request) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request.getRequestURI());
+    }
+
     @org.springframework.web.bind.annotation.ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleValidation(MethodArgumentNotValidException ex,
                                                              HttpServletRequest request) {

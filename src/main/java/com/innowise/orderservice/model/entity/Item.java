@@ -6,13 +6,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "items")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class Item extends AuditableEntity{
+public class Item extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,5 +23,5 @@ public class Item extends AuditableEntity{
     private String name;
 
     @Column(nullable = false)
-    private double price;
+    private BigDecimal price;
 }
