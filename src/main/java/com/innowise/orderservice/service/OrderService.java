@@ -4,6 +4,7 @@ import com.innowise.orderservice.model.dto.OrderWithUserResponseDto;
 import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
 import com.innowise.orderservice.model.dto.order.OrderResponseDto;
 import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
+import com.innowise.orderservice.model.entity.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,7 +17,7 @@ public interface OrderService {
     OrderWithUserResponseDto getOrderById(Long id);
 
     Page<OrderWithUserResponseDto> getOrders(
-            List<String> statuses,
+            List<OrderStatus> statuses,
             String userEmail,
             Instant createdFrom,
             Instant createdTo,

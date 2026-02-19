@@ -3,6 +3,7 @@ package com.innowise.orderservice.controller;
 import com.innowise.orderservice.model.dto.OrderWithUserResponseDto;
 import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
 import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
+import com.innowise.orderservice.model.entity.OrderStatus;
 import com.innowise.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +45,7 @@ public class OrderController {
 
     @GetMapping
     public ResponseEntity<Page<OrderWithUserResponseDto>> getOrders(
-            @RequestParam(required = false) List<String> statuses,
+            @RequestParam(required = false) List<OrderStatus> statuses,
             @RequestParam(required = false) String userEmail,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdTo,

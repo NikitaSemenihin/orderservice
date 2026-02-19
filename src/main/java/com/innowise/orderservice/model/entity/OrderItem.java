@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "order_items")
@@ -31,6 +32,7 @@ public class OrderItem extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "item_id", nullable = false)
+    @BatchSize(size = 50)
     private Item item;
 
     @Column(nullable = false)

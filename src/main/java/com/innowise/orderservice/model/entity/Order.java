@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -29,7 +30,8 @@ public class Order extends AuditableEntity {
     private String userEmail;
 
     @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
 
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
@@ -42,5 +44,6 @@ public class Order extends AuditableEntity {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @BatchSize(size = 50)
     private List<OrderItem> orderItems = new ArrayList<>();
 }

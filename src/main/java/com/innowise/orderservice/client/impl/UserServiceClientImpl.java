@@ -5,12 +5,16 @@ import com.innowise.orderservice.exception.RemoteUserNotFoundException;
 import com.innowise.orderservice.exception.UserServiceUnavailableException;
 import com.innowise.orderservice.model.dto.UserClientDto;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class UserServiceClientImpl implements UserServiceClient {
@@ -73,6 +77,63 @@ public class UserServiceClientImpl implements UserServiceClient {
         } catch (RestClientException exception) {
             throw new UserServiceUnavailableException(
                     String.format("User service call failed for email: %s", email),
+                    exception
+            );
+        }
+    }
+
+    @Override
+    public Map<String, UserClientDto> getUsersByEmails(Set<String> emails) {
+        if (emails == null || emails.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            Map<String, UserClientDto> body = restClient.post()
+                    .uri("/api/users/emails")
+                    .body(emails)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                        if (response.getStatusCode().value() == 404) {
+                            throw new RemoteUserNotFoundException(
+                                    String.format("Users not found in user service for emails: %s", emails)
+                            );
+                        }
+                        throw new UserServiceUnavailableException(
+                                String.format("User service returned 4xx for email: %s", emails)
+                        );
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (request, response) -> {
+                        throw new UserServiceUnavailableException(
+                                String.format("User service returned 5xx for email: %s", emails)
+                        );
+                    })
+                    .body(new ParameterizedTypeReference<Map<String, UserClientDto>>() {});
+            if (body == null) {
+                throw new UserServiceUnavailableException(
+                        String.format("User service returned empty response for emails: %s", emails)
+                );
+            }
+            return body;
+        } catch (ResourceAccessException exception) {
+            throw new UserServiceUnavailableException(
+                    String.format("User service is unavailable (network/timeout) for emails: %s", emails),
+                    exception
+            );
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 404) {
+                throw new RemoteUserNotFoundException(
+                        String.format("Users not found in user service for emails: %s", emails),
+                        exception
+                );
+            }
+
+            throw new UserServiceUnavailableException(
+                    String.format("User service response error: %s", exception.getStatusCode()),
+                    exception
+            );
+        } catch (RestClientException exception) {
+            throw new UserServiceUnavailableException(
+                    String.format("User service call failed for emails: %s", emails),
                     exception
             );
         }

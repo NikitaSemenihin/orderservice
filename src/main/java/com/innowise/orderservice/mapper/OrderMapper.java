@@ -24,7 +24,7 @@ public interface OrderMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(source = "items", target = "orderItems")
+    @Mapping(target = "orderItems", ignore = true)
     void updateEntity(UpdateOrderRequestDto dto, @MappingTarget Order order);
 
     @Mapping(source = "orderItems", target = "items")

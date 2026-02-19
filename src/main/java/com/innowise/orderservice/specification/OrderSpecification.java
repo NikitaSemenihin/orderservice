@@ -1,6 +1,7 @@
 package com.innowise.orderservice.specification;
 
 import com.innowise.orderservice.model.entity.Order;
+import com.innowise.orderservice.model.entity.OrderStatus;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
@@ -10,7 +11,7 @@ public final class OrderSpecification {
     private OrderSpecification() {
     }
 
-    public static Specification<Order> hasStatuses(List<String> statuses) {
+    public static Specification<Order> hasStatuses(List<OrderStatus> statuses) {
         return (root, query, cb) -> {
             if (statuses == null || statuses.isEmpty()) {
                 return cb.conjunction();

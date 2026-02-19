@@ -2,6 +2,7 @@ package com.innowise.orderservice.exception;
 
 import com.innowise.orderservice.model.dto.ErrorResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -48,8 +49,7 @@ public class ExceptionHandler {
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponseDto> handleInvalidJson(HttpMessageNotReadableException ex,
-                                                              HttpServletRequest request) {
+    public ResponseEntity<ErrorResponseDto> handleInvalidJson(HttpServletRequest request) {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Invalid request body",
@@ -61,6 +61,16 @@ public class ExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleIllegalArgument(IllegalArgumentException ex,
                                                                   HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDto> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+                                                                         HttpServletRequest request){
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
