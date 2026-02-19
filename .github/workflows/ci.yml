@@ -49,8 +49,14 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
       - name: Build
         run: ./mvnw -B -DskipTests clean package
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
 
       - name: Test
         run: ./mvnw -B test
