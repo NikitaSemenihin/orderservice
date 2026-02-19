@@ -87,6 +87,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase image repo
+        run: echo "IMAGE_REPO=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/orderservice" >> $GITHUB_ENV
+
       - name: Build Docker image (PR)
         if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v6
@@ -94,7 +97,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: ghcr.io/${{ github.repository_owner }}/orderservice:${{ github.sha }}
+          tags: ${{ env.IMAGE_REPO }}:${{ github.sha }}
 
       - name: Build and Push Docker image (Push)
         if: github.event_name == 'push'
@@ -104,5 +107,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/orderservice:latest
-            ghcr.io/${{ github.repository_owner }}/orderservice:${{ github.sha }}
+            ${{ env.IMAGE_REPO }}:latest
+            ${{ env.IMAGE_REPO }}:${{ github.sha }}
