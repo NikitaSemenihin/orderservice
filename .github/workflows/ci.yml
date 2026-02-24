@@ -61,7 +61,7 @@ jobs:
       - name: Test
         run: ./mvnw -B test
 
-      - name: Code Analysis (optional)
+      - name: Code Analysis
         run: ./mvnw -B verify
 
   docker:

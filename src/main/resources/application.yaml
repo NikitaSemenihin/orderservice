@@ -21,3 +21,19 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceClient:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - com.innowise.orderservice.exception.UserServiceUnavailableException
+        ignoreExceptions:
+          - com.innowise.orderservice.exception.RemoteUserNotFoundException

@@ -4,6 +4,7 @@ import com.innowise.orderservice.client.UserServiceClient;
 import com.innowise.orderservice.exception.RemoteUserNotFoundException;
 import com.innowise.orderservice.exception.UserServiceUnavailableException;
 import com.innowise.orderservice.model.dto.UserClientDto;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -19,6 +20,7 @@ import java.util.Set;
 @Service
 public class UserServiceClientImpl implements UserServiceClient {
 
+    private static final String USER_SERVICE_CB = "userServiceClient";
     private final RestClient restClient;
 
     public UserServiceClientImpl(@Qualifier("userServiceRestClient") RestClient restClient) {
@@ -26,6 +28,7 @@ public class UserServiceClientImpl implements UserServiceClient {
     }
 
     @Override
+    @CircuitBreaker(name = USER_SERVICE_CB, fallbackMethod = "getUserByEmailFallback")
     public UserClientDto getUserByEmail(String email) {
         try {
             UserClientDto body = restClient.get()
@@ -82,7 +85,18 @@ public class UserServiceClientImpl implements UserServiceClient {
         }
     }
 
+    private UserClientDto getUserByEmailFallback(String email, Throwable ex) {
+        if (ex instanceof RemoteUserNotFoundException remoteUserNotFoundException) {
+            throw remoteUserNotFoundException;
+        }
+        throw new UserServiceUnavailableException(
+                String.format("User service call failed (circuit breaker) for email: %s", email),
+                ex
+        );
+    }
+
     @Override
+    @CircuitBreaker(name = USER_SERVICE_CB, fallbackMethod = "getUsersByEmailsFallback")
     public Map<String, UserClientDto> getUsersByEmails(Set<String> emails) {
         if (emails == null || emails.isEmpty()) {
             return Map.of();
@@ -107,7 +121,8 @@ public class UserServiceClientImpl implements UserServiceClient {
                                 String.format("User service returned 5xx for email: %s", emails)
                         );
                     })
-                    .body(new ParameterizedTypeReference<Map<String, UserClientDto>>() {});
+                    .body(new ParameterizedTypeReference<Map<String, UserClientDto>>() {
+                    });
             if (body == null) {
                 throw new UserServiceUnavailableException(
                         String.format("User service returned empty response for emails: %s", emails)
@@ -137,5 +152,15 @@ public class UserServiceClientImpl implements UserServiceClient {
                     exception
             );
         }
+    }
+
+    public Map<String, UserClientDto> getUsersByEmailsFallback(Set<String> emails, Throwable ex) {
+        if (ex instanceof RemoteUserNotFoundException remoteUserNotFoundException) {
+            throw remoteUserNotFoundException;
+        }
+        throw new UserServiceUnavailableException(
+                String.format("User service call failed (circuit breaker) for emails: %s", emails),
+                ex
+        );
     }
 }
