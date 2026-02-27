@@ -1,6 +1,12 @@
+userservice:
+  base-url: ${USER_SERVICE_BASE_URL}
+  connect-timeout-ms: ${USER_SERVICE_CONNECT_TIMEOUT_MS:2000}
+  read-timeout-ms: ${USER_SERVICE_READ_TIMEOUT_MS:3000}
+
 spring:
   application:
     name: orderservice
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -11,13 +17,23 @@ spring:
     hibernate:
       ddl-auto: validate
 
-  redis:
-    host: localhost
-    port: 6379
-
-  cache:
-    type: redis
 
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceClient:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - com.innowise.orderservice.exception.UserServiceUnavailableException
+        ignoreExceptions:
+          - com.innowise.orderservice.exception.RemoteUserNotFoundException

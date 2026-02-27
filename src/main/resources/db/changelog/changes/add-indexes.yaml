@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-indexes
+      author: Nikita Semenihin
+      changes:
+        - createIndex:
+            tableName: orders
+            indexName: idx_orders_user_email
+            columns:
+              - column:
+                  name: user_email
+        - createIndex:
+            tableName: orders
+            indexName: idx_orders_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: orders
+            indexName: idx_orders_deleted
+            columns:
+              - column:
+                  name: deleted
+        - createIndex:
+            tableName: order_items
+            indexName: idx_order_items_order_id
+            columns:
+              - column:
+                  name: order_id
+        - createIndex:
+            tableName: order_items
+            indexName: idx_order_items_item_id
+            columns:
+              - column:
+                  name: item_id
+        - createIndex:
+            tableName: order_items
+            indexName: idx_order_items_order_id_item_id
+            unique: true
+            columns:
+              - column:
+                  name: order_id
+              - column:
+                  name: item_id
+        - createIndex:
+            tableName: items
+            indexName: idx_items_name
+            columns:
+              - column:
+                  name: name

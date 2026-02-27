@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: orderservice-postgres
+    environment:
+      POSTGRES_DB: orderservice
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - orderservice_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orderservice"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  orderservice:
+    image: orderservice:latest
+    container_name: orderservice-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/orderservice
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      USER_SERVICE_BASE_URL: http://userservice:8081
+      USER_SERVICE_CONNECT_TIMEOUT_MS: 2000
+      USER_SERVICE_READ_TIMEOUT_MS: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  orderservice_postgres_data:
