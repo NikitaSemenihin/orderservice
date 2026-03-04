@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8083:8083"
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/orderservice
       DB_USERNAME: postgres
