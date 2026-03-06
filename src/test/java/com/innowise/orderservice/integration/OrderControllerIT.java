@@ -115,7 +115,7 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.order.totalPrice").value(100))
                 .andExpect(jsonPath("$.user.email").value("buyer@example.com"));
 
-        verify(getRequestedFor(urlPathEqualTo("/api/users"))
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/api/users"))
                 .withQueryParam("email", equalTo("buyer@example.com"))
                 .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
@@ -155,7 +155,7 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.content[0].order.status").value("PROCESSING"))
                 .andExpect(jsonPath("$.content[0].user.email").value("page@example.com"));
 
-        verify(postRequestedFor(urlPathEqualTo("/api/users/emails"))
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo("/api/users/emails"))
                 .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
 
@@ -169,8 +169,8 @@ class OrderControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
 
-        verify(0, postRequestedFor(urlPathEqualTo("/api/users/emails")));
-        verify(0, getRequestedFor(urlPathEqualTo("/api/users")));
+        WIREMOCK.verify(0, postRequestedFor(urlPathEqualTo("/api/users/emails")));
+        WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo("/api/users")));
     }
 
     private void stubUserByEmail(String email) throws Exception {
