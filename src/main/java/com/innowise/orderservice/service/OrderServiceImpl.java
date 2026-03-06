@@ -16,7 +16,6 @@ import com.innowise.orderservice.model.entity.OrderItem;
 import com.innowise.orderservice.model.entity.OrderStatus;
 import com.innowise.orderservice.repository.ItemRepository;
 import com.innowise.orderservice.repository.OrderRepository;
-import com.innowise.orderservice.service.OrderService;
 import com.innowise.orderservice.specification.OrderSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

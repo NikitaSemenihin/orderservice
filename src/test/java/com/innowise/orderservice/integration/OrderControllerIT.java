@@ -38,6 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class OrderControllerIT {
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String USER_ROLE_HEADER = "X-User-Role";
+    private static final String SERVICE_NAME_HEADER = "X-Service-Name";
+    private static final String SERVICE_NAME = "orderservice";
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -101,6 +105,8 @@ class OrderControllerIT {
         );
 
         mockMvc.perform(post("/api/orders")
+                        .header(USER_ID_HEADER, "1")
+                        .header(USER_ROLE_HEADER, "USER")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isCreated())
@@ -110,7 +116,8 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.user.email").value("buyer@example.com"));
 
         verify(getRequestedFor(urlPathEqualTo("/api/users"))
-                .withQueryParam("email", equalTo("buyer@example.com")));
+                .withQueryParam("email", equalTo("buyer@example.com"))
+                .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
 
     @Test
@@ -139,6 +146,8 @@ class OrderControllerIT {
                 )))));
 
         mockMvc.perform(get("/api/orders")
+                        .header(USER_ID_HEADER, "1")
+                        .header(USER_ROLE_HEADER, "USER")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -146,12 +155,15 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.content[0].order.status").value("PROCESSING"))
                 .andExpect(jsonPath("$.content[0].user.email").value("page@example.com"));
 
-        verify(postRequestedFor(urlPathEqualTo("/api/users/emails")));
+        verify(postRequestedFor(urlPathEqualTo("/api/users/emails"))
+                .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
 
     @Test
     void getOrdersShouldReturnEmptyPageWithoutCallingUserserviceWhenNoOrders() throws Exception {
         mockMvc.perform(get("/api/orders")
+                        .header(USER_ID_HEADER, "1")
+                        .header(USER_ROLE_HEADER, "USER")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
