@@ -28,6 +28,61 @@ public class UserServiceClientImpl implements UserServiceClient {
     }
 
     @Override
+    @CircuitBreaker(name = USER_SERVICE_CB, fallbackMethod = "getUserByIdFallback")
+    public UserClientDto getUserById(Long id) {
+        try {
+            UserClientDto body = restClient.get()
+                    .uri("/api/users/internal/{id}", id)
+                    .header(SERVICE_NAME_HEADER, SERVICE_NAME)
+                    .retrieve()
+                    .body(UserClientDto.class);
+
+            if (body == null) {
+                throw new UserServiceUnavailableException(
+                        String.format("User service returned empty response for id: %s", id)
+                );
+            }
+            return body;
+        } catch (ResourceAccessException exception) {
+            throw new UserServiceUnavailableException(
+                    String.format("User service is unavailable (network/timeout) for id: %s", id),
+                    exception
+            );
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 404) {
+                throw new RemoteUserNotFoundException(
+                        String.format("User not found in user service by id: %s", id),
+                        exception
+                );
+            }
+
+            throw new UserServiceUnavailableException(
+                    String.format(
+                            "User service response error: %s, body: %s",
+                            exception.getStatusCode(),
+                            exception.getResponseBodyAsString()
+                    ),
+                    exception
+            );
+        } catch (RestClientException exception) {
+            throw new UserServiceUnavailableException(
+                    String.format("User service call failed for id: %s", id),
+                    exception
+            );
+        }
+    }
+
+    private UserClientDto getUserByIdFallback(Long id, Throwable ex) {
+        if (ex instanceof RemoteUserNotFoundException remoteUserNotFoundException) {
+            throw remoteUserNotFoundException;
+        }
+        throw new UserServiceUnavailableException(
+                String.format("User service call failed (circuit breaker) for id: %s", id),
+                ex
+        );
+    }
+
+    @Override
     @CircuitBreaker(name = USER_SERVICE_CB, fallbackMethod = "getUserByEmailFallback")
     public UserClientDto getUserByEmail(String email) {
         try {

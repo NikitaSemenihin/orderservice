@@ -9,6 +9,7 @@ import java.util.List;
 
 public record OrderResponseDto(
         Long id,
+        Long userId,
         String userEmail,
         OrderStatus status,
         BigDecimal totalPrice,

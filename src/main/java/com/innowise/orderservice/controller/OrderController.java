@@ -4,7 +4,6 @@ import com.innowise.orderservice.model.dto.OrderWithUserResponseDto;
 import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
 import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
 import com.innowise.orderservice.model.entity.OrderStatus;
-import com.innowise.orderservice.service.AccessPolicyService;
 import com.innowise.orderservice.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -34,21 +33,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
-    private final AccessPolicyService accessPolicyService;
 
     @PostMapping
     public ResponseEntity<OrderWithUserResponseDto> createOrder(
             HttpServletRequest httpRequest,
             @Valid @RequestBody CreateOrderRequestDto request
     ) {
-        accessPolicyService.requireUserOrAdmin(httpRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request, httpRequest));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderWithUserResponseDto> getOrderById(HttpServletRequest httpRequest, @PathVariable Long id) {
-        accessPolicyService.requireUserOrAdmin(httpRequest);
-        return ResponseEntity.ok(orderService.getOrderById(id));
+        return ResponseEntity.ok(orderService.getOrderById(id, httpRequest));
     }
 
     @GetMapping
@@ -61,9 +57,8 @@ public class OrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        accessPolicyService.requireUserOrAdmin(httpRequest);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return ResponseEntity.ok(orderService.getOrders(statuses, userEmail, createdFrom, createdTo, pageable));
+        return ResponseEntity.ok(orderService.getOrders(httpRequest, statuses, userEmail, createdFrom, createdTo, pageable));
     }
 
     @PutMapping("/{id}")
@@ -72,14 +67,12 @@ public class OrderController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderRequestDto updateRequest
     ) {
-        accessPolicyService.requireAdmin(httpRequest);
-        return ResponseEntity.ok(orderService.updateOrderById(id, updateRequest));
+        return ResponseEntity.ok(orderService.updateOrderById(id, updateRequest, httpRequest));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrderById(HttpServletRequest httpRequest, @PathVariable Long id) {
-        accessPolicyService.requireAdmin(httpRequest);
-        orderService.deleteOrderById(id);
+        orderService.deleteOrderById(id, httpRequest);
         return ResponseEntity.noContent().build();
     }
 }

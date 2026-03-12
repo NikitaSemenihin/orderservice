@@ -9,7 +9,7 @@ public record RequestAuthContext(
         return role == RequesterRole.ADMIN;
     }
 
-    public boolean isEndUser() {
+    public boolean hasUserOrAdminRole() {
         return userId != null && role != null;
     }
 }

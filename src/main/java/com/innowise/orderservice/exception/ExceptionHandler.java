@@ -83,6 +83,11 @@ public class ExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
     }
 
+    @org.springframework.web.bind.annotation.ExceptionHandler(ItemInUseException.class)
+    public ResponseEntity<ErrorResponseDto> handleItemInUse(ItemInUseException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+    }
+
     @org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handleGeneric(Exception ex, HttpServletRequest request) {
         return buildResponse(

@@ -20,8 +20,23 @@ public class AccessPolicyService {
 
     public void requireUserOrAdmin(HttpServletRequest request) {
         RequestAuthContext context = requireContext(request);
-        if (!context.isEndUser()) {
+        if (!context.hasUserOrAdminRole()) {
             throw new ForbiddenException("Only USER or ADMIN can access this endpoint");
+        }
+    }
+
+    public void requireOwnUserOrAdmin(HttpServletRequest request, Long orderUserId) {
+        RequestAuthContext context = requireContext(request);
+        if (context.isAdmin()) {
+            return;
+        }
+
+        if (!context.hasUserOrAdminRole()) {
+            throw new ForbiddenException("Only order owner or ADMIN can access this endpoint");
+        }
+
+        if (orderUserId == null || !context.userId().equals(orderUserId)) {
+            throw new ForbiddenException("Only order owner or ADMIN can access this endpoint");
         }
     }
 

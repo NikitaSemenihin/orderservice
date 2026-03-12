@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 public interface UserServiceClient {
+    UserClientDto getUserById(Long id);
+
     UserClientDto getUserByEmail(String email);
 
     Map<String, UserClientDto> getUsersByEmails(Set<String> emails);

@@ -1,6 +1,8 @@
 package com.innowise.orderservice.service;
 
 import com.innowise.orderservice.client.UserServiceClient;
+import com.innowise.orderservice.config.RequestAuthContext;
+import com.innowise.orderservice.config.RequesterRole;
 import com.innowise.orderservice.exception.ItemNotFoundException;
 import com.innowise.orderservice.exception.OrderNotFoundException;
 import com.innowise.orderservice.exception.RemoteUserNotFoundException;
@@ -18,6 +20,7 @@ import com.innowise.orderservice.model.entity.OrderItem;
 import com.innowise.orderservice.model.entity.OrderStatus;
 import com.innowise.orderservice.repository.ItemRepository;
 import com.innowise.orderservice.repository.OrderRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -57,63 +60,72 @@ class OrderServiceImplTest {
     @Mock
     private UserServiceClient userServiceClient;
 
+    @Mock
+    private AccessPolicyService accessPolicyService;
+
+    @Mock
+    private HttpServletRequest httpRequest;
+
     @InjectMocks
     private OrderServiceImpl orderService;
 
     @Test
     void createOrderShouldSaveAndReturnCombinedResponse() {
         CreateOrderRequestDto request = new CreateOrderRequestDto(
-                "test@example.com",
                 OrderStatus.NEW,
                 List.of(new OrderItemRequestDto(10L, 2))
         );
         Order mappedOrder = buildOrder(1L, "test@example.com", OrderStatus.NEW, false);
         mappedOrder.setOrderItems(List.of(buildOrderItem(10L, 2)));
         Order savedOrder = mappedOrder;
-        OrderResponseDto orderResponse = buildOrderResponse(1L, "test@example.com", OrderStatus.NEW, BigDecimal.valueOf(20));
+        OrderResponseDto orderResponse = buildOrderResponse(1L, 1L, "test@example.com", OrderStatus.NEW, BigDecimal.valueOf(20));
         UserClientDto user = buildUser("test@example.com");
 
+        when(accessPolicyService.requireContext(httpRequest)).thenReturn(userContext(1L, RequesterRole.USER));
         when(orderMapper.toEntity(request)).thenReturn(mappedOrder);
         when(itemRepository.findById(10L)).thenReturn(Optional.of(buildItem(10L, "Pen", BigDecimal.TEN)));
         when(orderRepository.save(mappedOrder)).thenReturn(savedOrder);
-        when(userServiceClient.getUserByEmail("test@example.com")).thenReturn(user);
+        when(userServiceClient.getUserById(1L)).thenReturn(user);
         when(orderMapper.toResponse(savedOrder)).thenReturn(orderResponse);
 
-        OrderWithUserResponseDto result = orderService.createOrder(request);
+        OrderWithUserResponseDto result = orderService.createOrder(request, httpRequest);
 
         assertThat(result.order()).isEqualTo(orderResponse);
         assertThat(result.user()).isEqualTo(user);
         assertThat(mappedOrder.getTotalPrice()).isEqualByComparingTo("20");
+        assertThat(mappedOrder.getUserId()).isEqualTo(1L);
+        assertThat(mappedOrder.getUserEmail()).isEqualTo("test@example.com");
     }
 
     @Test
     void createOrderShouldThrowWhenItemMissing() {
         CreateOrderRequestDto request = new CreateOrderRequestDto(
-                "test@example.com",
                 OrderStatus.NEW,
                 List.of(new OrderItemRequestDto(10L, 2))
         );
         Order mappedOrder = buildOrder(1L, "test@example.com", OrderStatus.NEW, false);
         mappedOrder.setOrderItems(List.of(buildOrderItem(10L, 2)));
 
+        when(accessPolicyService.requireContext(httpRequest)).thenReturn(userContext(1L, RequesterRole.USER));
+        when(userServiceClient.getUserById(1L)).thenReturn(buildUser("test@example.com"));
         when(orderMapper.toEntity(request)).thenReturn(mappedOrder);
         when(itemRepository.findById(10L)).thenReturn(Optional.empty());
 
-        assertThrows(ItemNotFoundException.class, () -> orderService.createOrder(request));
+        assertThrows(ItemNotFoundException.class, () -> orderService.createOrder(request, httpRequest));
         verify(orderRepository, never()).save(any());
     }
 
     @Test
     void getOrderByIdShouldReturnCombinedResponseWhenFound() {
         Order order = buildOrder(2L, "found@example.com", OrderStatus.PROCESSING, false);
-        OrderResponseDto orderResponse = buildOrderResponse(2L, "found@example.com", OrderStatus.PROCESSING, BigDecimal.ONE);
+        OrderResponseDto orderResponse = buildOrderResponse(2L, 2L, "found@example.com", OrderStatus.PROCESSING, BigDecimal.ONE);
         UserClientDto user = buildUser("found@example.com");
 
         when(orderRepository.findById(2L)).thenReturn(Optional.of(order));
         when(userServiceClient.getUserByEmail("found@example.com")).thenReturn(user);
         when(orderMapper.toResponse(order)).thenReturn(orderResponse);
 
-        OrderWithUserResponseDto result = orderService.getOrderById(2L);
+        OrderWithUserResponseDto result = orderService.getOrderById(2L, httpRequest);
 
         assertThat(result.order()).isEqualTo(orderResponse);
         assertThat(result.user()).isEqualTo(user);
@@ -123,7 +135,7 @@ class OrderServiceImplTest {
     void getOrderByIdShouldThrowWhenOrderMissing() {
         when(orderRepository.findById(100L)).thenReturn(Optional.empty());
 
-        assertThrows(OrderNotFoundException.class, () -> orderService.getOrderById(100L));
+        assertThrows(OrderNotFoundException.class, () -> orderService.getOrderById(100L, httpRequest));
         verifyNoInteractions(userServiceClient);
     }
 
@@ -133,7 +145,7 @@ class OrderServiceImplTest {
         Instant from = Instant.parse("2024-01-02T00:00:00Z");
         Instant to = Instant.parse("2024-01-01T00:00:00Z");
 
-        assertThrows(IllegalArgumentException.class, () -> orderService.getOrders(null, null, from, to, pageable));
+        assertThrows(IllegalArgumentException.class, () -> orderService.getOrders(httpRequest, null, null, from, to, pageable));
         verifyNoInteractions(orderRepository, userServiceClient);
     }
 
@@ -142,9 +154,10 @@ class OrderServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Order> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
+        when(accessPolicyService.requireContext(httpRequest)).thenReturn(userContext(1L, RequesterRole.ADMIN));
         when(orderRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(emptyPage);
 
-        Page<OrderWithUserResponseDto> result = orderService.getOrders(null, null, null, null, pageable);
+        Page<OrderWithUserResponseDto> result = orderService.getOrders(httpRequest, null, null, null, null, pageable);
 
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isZero();
@@ -156,14 +169,15 @@ class OrderServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         Order order = buildOrder(3L, "page@example.com", OrderStatus.COMPLETED, false);
         Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
-        OrderResponseDto dto = buildOrderResponse(3L, "page@example.com", OrderStatus.COMPLETED, BigDecimal.valueOf(42));
+        OrderResponseDto dto = buildOrderResponse(3L, 3L, "page@example.com", OrderStatus.COMPLETED, BigDecimal.valueOf(42));
         UserClientDto user = buildUser("page@example.com");
 
+        when(accessPolicyService.requireContext(httpRequest)).thenReturn(userContext(1L, RequesterRole.ADMIN));
         when(orderRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(orders);
         when(orderMapper.toResponse(order)).thenReturn(dto);
         when(userServiceClient.getUsersByEmails(anySet())).thenReturn(Map.of("page@example.com", user));
 
-        Page<OrderWithUserResponseDto> result = orderService.getOrders(List.of(OrderStatus.COMPLETED), null, null, null, pageable);
+        Page<OrderWithUserResponseDto> result = orderService.getOrders(httpRequest, List.of(OrderStatus.COMPLETED), null, null, null, pageable);
 
         assertThat(result.getTotalElements()).isEqualTo(1);
         assertThat(result.getContent()).hasSize(1);
@@ -179,14 +193,15 @@ class OrderServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         Order order = buildOrder(4L, "missing@example.com", OrderStatus.NEW, false);
         Page<Order> orders = new PageImpl<>(List.of(order), pageable, 1);
-        OrderResponseDto dto = buildOrderResponse(4L, "missing@example.com", OrderStatus.NEW, BigDecimal.ONE);
+        OrderResponseDto dto = buildOrderResponse(4L, 4L, "missing@example.com", OrderStatus.NEW, BigDecimal.ONE);
 
+        when(accessPolicyService.requireContext(httpRequest)).thenReturn(userContext(1L, RequesterRole.ADMIN));
         when(orderRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(orders);
         when(orderMapper.toResponse(order)).thenReturn(dto);
         when(userServiceClient.getUsersByEmails(anySet())).thenReturn(Map.of());
 
         assertThrows(RemoteUserNotFoundException.class,
-                () -> orderService.getOrders(null, null, null, null, pageable));
+                () -> orderService.getOrders(httpRequest, null, null, null, null, pageable));
     }
 
     @Test
@@ -198,7 +213,7 @@ class OrderServiceImplTest {
 
         Order existing = buildOrder(5L, "update@example.com", OrderStatus.NEW, false);
         existing.setOrderItems(new java.util.ArrayList<>(List.of(buildOrderItem(10L, 1))));
-        OrderResponseDto response = buildOrderResponse(5L, "update@example.com", OrderStatus.PROCESSING, BigDecimal.valueOf(30));
+        OrderResponseDto response = buildOrderResponse(5L, 5L, "update@example.com", OrderStatus.PROCESSING, BigDecimal.valueOf(30));
         UserClientDto user = buildUser("update@example.com");
 
         when(orderRepository.findById(5L)).thenReturn(Optional.of(existing));
@@ -207,7 +222,7 @@ class OrderServiceImplTest {
         when(userServiceClient.getUserByEmail("update@example.com")).thenReturn(user);
         when(orderMapper.toResponse(existing)).thenReturn(response);
 
-        OrderWithUserResponseDto result = orderService.updateOrderById(5L, request);
+        OrderWithUserResponseDto result = orderService.updateOrderById(5L, request, httpRequest);
 
         assertThat(result.order()).isEqualTo(response);
         assertThat(result.user()).isEqualTo(user);
@@ -225,7 +240,7 @@ class OrderServiceImplTest {
         );
         when(orderRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(OrderNotFoundException.class, () -> orderService.updateOrderById(999L, request));
+        assertThrows(OrderNotFoundException.class, () -> orderService.updateOrderById(999L, request, httpRequest));
         verify(orderMapper, never()).updateEntity(any(), any());
     }
 
@@ -234,7 +249,7 @@ class OrderServiceImplTest {
         Order order = buildOrder(7L, "delete@example.com", OrderStatus.CANCELED, false);
         when(orderRepository.findById(7L)).thenReturn(Optional.of(order));
 
-        orderService.deleteOrderById(7L);
+        orderService.deleteOrderById(7L, httpRequest);
 
         verify(orderRepository).delete(order);
     }
@@ -243,7 +258,7 @@ class OrderServiceImplTest {
     void deleteOrderByIdShouldThrowWhenMissing() {
         when(orderRepository.findById(8L)).thenReturn(Optional.empty());
 
-        assertThrows(OrderNotFoundException.class, () -> orderService.deleteOrderById(8L));
+        assertThrows(OrderNotFoundException.class, () -> orderService.deleteOrderById(8L, httpRequest));
         verify(orderRepository, never()).delete(any(Order.class));
     }
 
@@ -267,6 +282,7 @@ class OrderServiceImplTest {
     private static Order buildOrder(Long id, String email, OrderStatus status, boolean deleted) {
         Order order = new Order();
         order.setId(id);
+        order.setUserId(id);
         order.setUserEmail(email);
         order.setStatus(status);
         order.setDeleted(deleted);
@@ -274,9 +290,10 @@ class OrderServiceImplTest {
         return order;
     }
 
-    private static OrderResponseDto buildOrderResponse(Long id, String email, OrderStatus status, BigDecimal total) {
+    private static OrderResponseDto buildOrderResponse(Long id, Long userId, String email, OrderStatus status, BigDecimal total) {
         return new OrderResponseDto(
                 id,
+                userId,
                 email,
                 status,
                 total,
@@ -298,5 +315,9 @@ class OrderServiceImplTest {
                 Instant.now(),
                 Instant.now()
         );
+    }
+
+    private static RequestAuthContext userContext(Long userId, RequesterRole role) {
+        return new RequestAuthContext(userId, role, null);
     }
 }
