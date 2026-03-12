@@ -96,10 +96,9 @@ class OrderControllerIT {
         item.setPrice(BigDecimal.valueOf(50));
         Item savedItem = itemRepository.saveAndFlush(item);
 
-        stubUserByEmail("buyer@example.com");
+        stubUserById(1L, "buyer@example.com");
 
         Map<String, Object> payload = Map.of(
-                "userEmail", "buyer@example.com",
                 "status", "NEW",
                 "items", List.of(Map.of("itemId", savedItem.getId(), "quantity", 2))
         );
@@ -115,8 +114,7 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.order.totalPrice").value(100))
                 .andExpect(jsonPath("$.user.email").value("buyer@example.com"));
 
-        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/api/users"))
-                .withQueryParam("email", equalTo("buyer@example.com"))
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/api/users/internal/1"))
                 .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
 
@@ -128,6 +126,7 @@ class OrderControllerIT {
         Item savedItem = itemRepository.saveAndFlush(item);
 
         Order order = new Order();
+        order.setUserId(1L);
         order.setUserEmail("page@example.com");
         order.setStatus(OrderStatus.PROCESSING);
         order.setDeleted(false);
@@ -173,9 +172,8 @@ class OrderControllerIT {
         WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo("/api/users")));
     }
 
-    private void stubUserByEmail(String email) throws Exception {
-        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/api/users"))
-                .withQueryParam("email", equalTo(email))
+    private void stubUserById(Long id, String email) throws Exception {
+        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/api/users/internal/" + id))
                 .willReturn(okJson(objectMapper.writeValueAsString(buildUserBody(email)))));
     }
 
