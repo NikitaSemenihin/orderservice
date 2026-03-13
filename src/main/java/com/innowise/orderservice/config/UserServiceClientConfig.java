@@ -8,7 +8,6 @@ import org.springframework.web.client.RestClient;
 
 @Configuration
 public class UserServiceClientConfig {
-
     @Bean
     RestClient userServiceRestClient(
             @Value("${userservice.base-url}") String baseUrl,

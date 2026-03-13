@@ -1,6 +1,7 @@
 package com.innowise.orderservice.service;
 
 import com.innowise.orderservice.client.UserServiceClient;
+import com.innowise.orderservice.config.RequestAuthContext;
 import com.innowise.orderservice.exception.ItemNotFoundException;
 import com.innowise.orderservice.exception.OrderNotFoundException;
 import com.innowise.orderservice.exception.RemoteUserNotFoundException;
@@ -16,8 +17,8 @@ import com.innowise.orderservice.model.entity.OrderItem;
 import com.innowise.orderservice.model.entity.OrderStatus;
 import com.innowise.orderservice.repository.ItemRepository;
 import com.innowise.orderservice.repository.OrderRepository;
-import com.innowise.orderservice.service.OrderService;
 import com.innowise.orderservice.specification.OrderSpecification;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -43,22 +44,29 @@ public class OrderServiceImpl implements OrderService {
     private final ItemRepository itemRepository;
     private final OrderMapper orderMapper;
     private final UserServiceClient userServiceClient;
+    private final AccessPolicyService accessPolicyService;
 
     @Override
     @Transactional
-    public OrderWithUserResponseDto createOrder(CreateOrderRequestDto request) {
+    public OrderWithUserResponseDto createOrder(CreateOrderRequestDto request, HttpServletRequest httpRequest) {
+        accessPolicyService.requireUserOrAdmin(httpRequest);
+        RequestAuthContext context = accessPolicyService.requireContext(httpRequest);
+        UserClientDto user = userServiceClient.getUserById(context.userId());
+
         Order order = orderMapper.toEntity(request);
         order.setDeleted(false);
+        order.setUserId(user.id());
+        order.setUserEmail(user.email());
         attachResolvedItemsAndCalculateTotal(order);
         Order savedOrder = orderRepository.save(order);
-        UserClientDto user = userServiceClient.getUserByEmail(order.getUserEmail());
         return buildResponse(user, orderMapper.toResponse(savedOrder));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public OrderWithUserResponseDto getOrderById(Long id) {
+    public OrderWithUserResponseDto getOrderById(Long id, HttpServletRequest httpRequest) {
         Order order = getExistingOrder(id);
+        accessPolicyService.requireOwnUserOrAdmin(httpRequest, order.getUserId());
         UserClientDto user = userServiceClient.getUserByEmail(order.getUserEmail());
         return buildResponse(user, orderMapper.toResponse(order));
     }
@@ -66,6 +74,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public Page<OrderWithUserResponseDto> getOrders(
+            HttpServletRequest httpRequest,
             List<OrderStatus> statuses,
             String userEmail,
             Instant createdFrom,
@@ -76,8 +85,17 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("createdFrom must be before or equal to createdTo");
         }
 
+        RequestAuthContext context = accessPolicyService.requireContext(httpRequest);
+        Long userId = null;
+        if (!context.isAdmin()) {
+            accessPolicyService.requireUserOrAdmin(httpRequest);
+            userId = context.userId();
+            userEmail = null;
+        }
+
         Specification<Order> specification = Specification
                 .where(OrderSpecification.hasStatuses(statuses))
+                .and(OrderSpecification.hasUserId(userId))
                 .and(OrderSpecification.hasUserEmail(userEmail))
                 .and(OrderSpecification.createdAtBetween(createdFrom, createdTo));
 
@@ -105,8 +123,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderWithUserResponseDto updateOrderById(Long id, UpdateOrderRequestDto request) {
+    public OrderWithUserResponseDto updateOrderById(Long id, UpdateOrderRequestDto request, HttpServletRequest httpRequest) {
         Order order = getExistingOrder(id);
+        accessPolicyService.requireOwnUserOrAdmin(httpRequest, order.getUserId());
         orderMapper.updateEntity(request, order);
         mergeOrderItems(order, request);
         attachResolvedItemsAndCalculateTotal(order);
@@ -118,8 +137,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void deleteOrderById(Long id) {
+    public void deleteOrderById(Long id, HttpServletRequest httpRequest) {
         Order order = getExistingOrder(id);
+        accessPolicyService.requireOwnUserOrAdmin(httpRequest, order.getUserId());
         orderRepository.delete(order);
     }
 

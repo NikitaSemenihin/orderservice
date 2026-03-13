@@ -26,6 +26,9 @@ public class Order extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Column(name = "user_email", nullable = false)
     private String userEmail;
 

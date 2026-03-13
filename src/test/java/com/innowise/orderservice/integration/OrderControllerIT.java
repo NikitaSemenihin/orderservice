@@ -38,6 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class OrderControllerIT {
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String USER_ROLE_HEADER = "X-User-Role";
+    private static final String SERVICE_NAME_HEADER = "X-Service-Name";
+    private static final String SERVICE_NAME = "orderservice";
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -92,15 +96,16 @@ class OrderControllerIT {
         item.setPrice(BigDecimal.valueOf(50));
         Item savedItem = itemRepository.saveAndFlush(item);
 
-        stubUserByEmail("buyer@example.com");
+        stubUserById(1L, "buyer@example.com");
 
         Map<String, Object> payload = Map.of(
-                "userEmail", "buyer@example.com",
                 "status", "NEW",
                 "items", List.of(Map.of("itemId", savedItem.getId(), "quantity", 2))
         );
 
         mockMvc.perform(post("/api/orders")
+                        .header(USER_ID_HEADER, "1")
+                        .header(USER_ROLE_HEADER, "USER")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isCreated())
@@ -109,8 +114,8 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.order.totalPrice").value(100))
                 .andExpect(jsonPath("$.user.email").value("buyer@example.com"));
 
-        verify(getRequestedFor(urlPathEqualTo("/api/users"))
-                .withQueryParam("email", equalTo("buyer@example.com")));
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/api/users/internal/1"))
+                .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
 
     @Test
@@ -121,6 +126,7 @@ class OrderControllerIT {
         Item savedItem = itemRepository.saveAndFlush(item);
 
         Order order = new Order();
+        order.setUserId(1L);
         order.setUserEmail("page@example.com");
         order.setStatus(OrderStatus.PROCESSING);
         order.setDeleted(false);
@@ -139,6 +145,8 @@ class OrderControllerIT {
                 )))));
 
         mockMvc.perform(get("/api/orders")
+                        .header(USER_ID_HEADER, "1")
+                        .header(USER_ROLE_HEADER, "USER")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -146,24 +154,26 @@ class OrderControllerIT {
                 .andExpect(jsonPath("$.content[0].order.status").value("PROCESSING"))
                 .andExpect(jsonPath("$.content[0].user.email").value("page@example.com"));
 
-        verify(postRequestedFor(urlPathEqualTo("/api/users/emails")));
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo("/api/users/emails"))
+                .withHeader(SERVICE_NAME_HEADER, equalTo(SERVICE_NAME)));
     }
 
     @Test
     void getOrdersShouldReturnEmptyPageWithoutCallingUserserviceWhenNoOrders() throws Exception {
         mockMvc.perform(get("/api/orders")
+                        .header(USER_ID_HEADER, "1")
+                        .header(USER_ROLE_HEADER, "USER")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
 
-        verify(0, postRequestedFor(urlPathEqualTo("/api/users/emails")));
-        verify(0, getRequestedFor(urlPathEqualTo("/api/users")));
+        WIREMOCK.verify(0, postRequestedFor(urlPathEqualTo("/api/users/emails")));
+        WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo("/api/users")));
     }
 
-    private void stubUserByEmail(String email) throws Exception {
-        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/api/users"))
-                .withQueryParam("email", equalTo(email))
+    private void stubUserById(Long id, String email) throws Exception {
+        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/api/users/internal/" + id))
                 .willReturn(okJson(objectMapper.writeValueAsString(buildUserBody(email)))));
     }
 

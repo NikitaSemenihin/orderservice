@@ -29,6 +29,15 @@ public final class OrderSpecification {
         };
     }
 
+    public static Specification<Order> hasUserId(Long userId) {
+        return (root, query, cb) -> {
+            if (userId == null) {
+                return cb.conjunction();
+            }
+            return cb.equal(root.get("userId"), userId);
+        };
+    }
+
     public static Specification<Order> createdAtBetween(Instant from, Instant to) {
         return (root, query, cb) -> {
             if (from != null && to != null) {

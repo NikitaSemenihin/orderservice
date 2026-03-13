@@ -7,7 +7,6 @@ import com.innowise.orderservice.model.dto.UserClientDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -19,12 +18,68 @@ import java.util.Set;
 
 @Service
 public class UserServiceClientImpl implements UserServiceClient {
-
     private static final String USER_SERVICE_CB = "userServiceClient";
+    private static final String SERVICE_NAME_HEADER = "X-Service-Name";
+    private static final String SERVICE_NAME = "orderservice";
     private final RestClient restClient;
 
     public UserServiceClientImpl(@Qualifier("userServiceRestClient") RestClient restClient) {
         this.restClient = restClient;
+    }
+
+    @Override
+    @CircuitBreaker(name = USER_SERVICE_CB, fallbackMethod = "getUserByIdFallback")
+    public UserClientDto getUserById(Long id) {
+        try {
+            UserClientDto body = restClient.get()
+                    .uri("/api/users/internal/{id}", id)
+                    .header(SERVICE_NAME_HEADER, SERVICE_NAME)
+                    .retrieve()
+                    .body(UserClientDto.class);
+
+            if (body == null) {
+                throw new UserServiceUnavailableException(
+                        String.format("User service returned empty response for id: %s", id)
+                );
+            }
+            return body;
+        } catch (ResourceAccessException exception) {
+            throw new UserServiceUnavailableException(
+                    String.format("User service is unavailable (network/timeout) for id: %s", id),
+                    exception
+            );
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 404) {
+                throw new RemoteUserNotFoundException(
+                        String.format("User not found in user service by id: %s", id),
+                        exception
+                );
+            }
+
+            throw new UserServiceUnavailableException(
+                    String.format(
+                            "User service response error: %s, body: %s",
+                            exception.getStatusCode(),
+                            exception.getResponseBodyAsString()
+                    ),
+                    exception
+            );
+        } catch (RestClientException exception) {
+            throw new UserServiceUnavailableException(
+                    String.format("User service call failed for id: %s", id),
+                    exception
+            );
+        }
+    }
+
+    private UserClientDto getUserByIdFallback(Long id, Throwable ex) {
+        if (ex instanceof RemoteUserNotFoundException remoteUserNotFoundException) {
+            throw remoteUserNotFoundException;
+        }
+        throw new UserServiceUnavailableException(
+                String.format("User service call failed (circuit breaker) for id: %s", id),
+                ex
+        );
     }
 
     @Override
@@ -36,22 +91,8 @@ public class UserServiceClientImpl implements UserServiceClient {
                             .path("/api/users")
                             .queryParam("email", email)
                             .build())
+                    .header(SERVICE_NAME_HEADER, SERVICE_NAME)
                     .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
-                        if (response.getStatusCode().value() == 404) {
-                            throw new RemoteUserNotFoundException(
-                                    String.format("User not found in user service by email: %s", email)
-                            );
-                        }
-                        throw new UserServiceUnavailableException(
-                                String.format("User service returned 4xx for email: %s", email)
-                        );
-                    })
-                    .onStatus(HttpStatusCode::is5xxServerError, (request, response) -> {
-                        throw new UserServiceUnavailableException(
-                                String.format("User service returned 5xx for email: %s", email)
-                        );
-                    })
                     .body(UserClientDto.class);
 
             if (body == null) {
@@ -74,7 +115,11 @@ public class UserServiceClientImpl implements UserServiceClient {
             }
 
             throw new UserServiceUnavailableException(
-                    String.format("User service response error: %s", exception.getStatusCode()),
+                    String.format(
+                            "User service response error: %s, body: %s",
+                            exception.getStatusCode(),
+                            exception.getResponseBodyAsString()
+                    ),
                     exception
             );
         } catch (RestClientException exception) {
@@ -104,23 +149,9 @@ public class UserServiceClientImpl implements UserServiceClient {
         try {
             Map<String, UserClientDto> body = restClient.post()
                     .uri("/api/users/emails")
+                    .header(SERVICE_NAME_HEADER, SERVICE_NAME)
                     .body(emails)
                     .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
-                        if (response.getStatusCode().value() == 404) {
-                            throw new RemoteUserNotFoundException(
-                                    String.format("Users not found in user service for emails: %s", emails)
-                            );
-                        }
-                        throw new UserServiceUnavailableException(
-                                String.format("User service returned 4xx for email: %s", emails)
-                        );
-                    })
-                    .onStatus(HttpStatusCode::is5xxServerError, (request, response) -> {
-                        throw new UserServiceUnavailableException(
-                                String.format("User service returned 5xx for email: %s", emails)
-                        );
-                    })
                     .body(new ParameterizedTypeReference<Map<String, UserClientDto>>() {
                     });
             if (body == null) {
@@ -143,7 +174,11 @@ public class UserServiceClientImpl implements UserServiceClient {
             }
 
             throw new UserServiceUnavailableException(
-                    String.format("User service response error: %s", exception.getStatusCode()),
+                    String.format(
+                            "User service response error: %s, body: %s",
+                            exception.getStatusCode(),
+                            exception.getResponseBodyAsString()
+                    ),
                     exception
             );
         } catch (RestClientException exception) {
