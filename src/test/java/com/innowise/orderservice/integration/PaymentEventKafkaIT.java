@@ -54,6 +54,11 @@ class PaymentEventKafkaIT {
         registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
         registry.add("app.kafka.payment-created-topic", () -> TOPIC);
         registry.add("userservice.base-url", () -> "http://localhost:9999");
+        registry.add("spring.kafka.producer.key-serializer",
+                () -> "org.apache.kafka.common.serialization.StringSerializer");
+        registry.add("spring.kafka.producer.value-serializer",
+                () -> "org.springframework.kafka.support.serializer.JsonSerializer");
+
     }
 
     @BeforeEach
