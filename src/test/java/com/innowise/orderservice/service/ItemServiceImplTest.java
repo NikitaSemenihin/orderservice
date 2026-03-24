@@ -8,6 +8,7 @@ import com.innowise.orderservice.model.dto.item.ItemResponseDto;
 import com.innowise.orderservice.model.entity.Item;
 import com.innowise.orderservice.repository.ItemRepository;
 import com.innowise.orderservice.repository.OrderItemRepository;
+import com.innowise.orderservice.service.impl.ItemServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

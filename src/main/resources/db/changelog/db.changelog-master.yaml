@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/changes/create-order-items.yaml
   - include:
       file: db/changelog/changes/add-indexes.yaml
+  - include:
+      file: db/changelog/changes/add-order-payment-fields.yaml

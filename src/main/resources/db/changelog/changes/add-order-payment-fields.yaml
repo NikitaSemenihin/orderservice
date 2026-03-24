@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-order-payment-fields
+      author: Codex
+      changes:
+        - addColumn:
+            tableName: orders
+            columns:
+              - column:
+                  name: payment_id
+                  type: VARCHAR(64)
+              - column:
+                  name: payment_status
+                  type: VARCHAR(32)
+        - addUniqueConstraint:
+            tableName: orders
+            columnNames: payment_id
+            constraintName: uq_orders_payment_id
