@@ -2,7 +2,6 @@ package com.innowise.orderservice.service;
 
 import com.innowise.orderservice.model.dto.OrderWithUserResponseDto;
 import com.innowise.orderservice.model.dto.order.CreateOrderRequestDto;
-import com.innowise.orderservice.model.dto.order.OrderResponseDto;
 import com.innowise.orderservice.model.dto.order.UpdateOrderRequestDto;
 import com.innowise.orderservice.model.entity.OrderStatus;
 import jakarta.servlet.http.HttpServletRequest;

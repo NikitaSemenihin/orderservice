@@ -1,4 +1,4 @@
-package com.innowise.orderservice.service;
+package com.innowise.orderservice.service.impl;
 
 import com.innowise.orderservice.exception.ItemInUseException;
 import com.innowise.orderservice.exception.ItemNotFoundException;

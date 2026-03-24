@@ -39,6 +39,12 @@ public class Order extends AuditableEntity {
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 
+    @Column(name = "payment_id", unique = true)
+    private String paymentId;
+
+    @Column(name = "payment_status")
+    private String paymentStatus;
+
     @Column(nullable = false)
     private boolean deleted;
 

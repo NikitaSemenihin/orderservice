@@ -10,6 +10,20 @@ spring:
   application:
     name: orderservice
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: orderservice-payment-events
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.innowise.orderservice.event.PaymentCreatedEvent
+        spring.json.use.type.headers: false
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -24,6 +38,10 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+app:
+  kafka:
+    payment-created-topic: payment.created
 
 resilience4j:
   circuitbreaker:
