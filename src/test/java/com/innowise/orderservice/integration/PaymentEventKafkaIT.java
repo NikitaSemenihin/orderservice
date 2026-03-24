@@ -36,7 +36,9 @@ class PaymentEventKafkaIT {
             .withPassword("test");
 
     @Container
-    static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+    static final KafkaContainer KAFKA = new KafkaContainer(
+            DockerImageName.parse("confluentinc/cp-kafka:7.6.1")
+    );
 
     @Autowired
     private OrderRepository orderRepository;
